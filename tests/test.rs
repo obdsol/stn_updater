@@ -1,4 +1,4 @@
-use stn_updater::stn::codec::{RequestFrame, ResponseFrame, StnCodec};
+use stn_updater::codec::{RequestFrame, ResponseFrame, StnCodec};
 use tokio_util::codec::{Decoder, Encoder};
 
 use test_case::test_case;

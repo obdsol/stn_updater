@@ -1,4 +1,4 @@
-use crate::stn::codec::{Error, RequestFrame, ResponseFrame};
+use crate::codec::{Error, RequestFrame, ResponseFrame};
 
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
