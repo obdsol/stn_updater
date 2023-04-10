@@ -2,27 +2,17 @@ use crate::codec::{Error, RequestFrame, ResponseFrame};
 
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-trait StnSerialize {
-    fn serialize(&self) -> Vec<u8>;
-}
-
-impl <T: Serialize> StnSerialize for T {
-    fn serialize(&self) -> Vec<u8> {
-        bincode::serialize(self).unwrap()
-    }
-}
-
-trait StnRequest<'de>: StnSerialize {
+pub trait Request: Serialize {
     const COMMAND: u8;
-    type Response: StnResponse<'de>;
+    type Response: Response;
 
     fn frame(&self) -> RequestFrame {
-        RequestFrame::new(Self::COMMAND, self.serialize())
+        RequestFrame::new(Self::COMMAND, bincode::serialize(self).unwrap())
     }
 }
 
-trait StnResponse<'de>: DeserializeOwned {
-    fn from<T: StnRequest<'de>>(frame: ResponseFrame) -> Result<Self, Error> {
+pub trait Response: DeserializeOwned {
+    fn from<T: Request>(frame: ResponseFrame) -> Result<Self, Error> {
         if frame.command != T::COMMAND {
             Err(Error::InvalidCommand(frame))
         } else if !frame.ack {
@@ -34,12 +24,12 @@ trait StnResponse<'de>: DeserializeOwned {
 }
 
 #[derive(Serialize)]
-struct ConnectRequest;
-impl StnRequest<'_> for ConnectRequest {
+pub struct ConnectRequest;
+impl Request for ConnectRequest {
     const COMMAND: u8 = 0x03;
     type Response = ConnectResponse;
 }
 
 #[derive(Deserialize)]
-struct ConnectResponse;
-impl StnResponse<'_> for ConnectResponse {}
+pub struct ConnectResponse;
+impl Response for ConnectResponse {}
