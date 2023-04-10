@@ -1,6 +1,6 @@
 use crate::codec::{Error, RequestFrame, ResponseFrame};
 
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub trait Request: Serialize {
     const COMMAND: u8;

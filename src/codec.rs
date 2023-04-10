@@ -9,7 +9,7 @@ pub enum Error {
     InvalidResponse(ResponseFrame),
     BinCode(Box<bincode::ErrorKind>),
     SerialPortError(tokio_serial::Error),
-    Placeholder
+    Placeholder,
 }
 
 impl From<std::io::Error> for Error {
@@ -81,11 +81,7 @@ impl StnCodec {
 impl Encoder<RequestFrame> for StnCodec {
     type Error = Error;
 
-    fn encode(
-        &mut self,
-        item: RequestFrame,
-        dst: &mut BytesMut,
-    ) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: RequestFrame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let mut digest = self.crc.digest();
 
         dst.put_u8(StnCodec::STX);
