@@ -167,7 +167,7 @@ impl Decoder for StnCodec {
 
                         let response = ResponseFrame { ack, command, data };
 
-                        src.advance(idx);
+                        src.advance(idx + 1);
 
                         return Ok(Some(response));
                     }
