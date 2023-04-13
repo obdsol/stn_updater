@@ -2,17 +2,27 @@ use crate::codec::{Error, RequestFrame, ResponseFrame};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub trait Request: Serialize {
+pub trait IntoBytes {
+    fn into_bytes(&self) -> Vec<u8>;
+}
+
+impl<T: Serialize> IntoBytes for T {
+    fn into_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).unwrap()
+    }
+}
+
+pub trait Request: IntoBytes {
     const COMMAND: u8;
     type Response: Response;
 
     fn frame(&self) -> RequestFrame {
-        RequestFrame::new(Self::COMMAND, bincode::serialize(self).unwrap())
+        RequestFrame::new(Self::COMMAND, self.into_bytes())
     }
 }
 
 pub trait Response: DeserializeOwned {
-    fn from<T: Request>(frame: ResponseFrame) -> Result<Self, Error> {
+    fn from_frame<T: Request>(frame: ResponseFrame) -> Result<Self, Error> {
         if frame.command != T::COMMAND {
             Err(Error::InvalidCommand(frame))
         } else if !frame.ack {
@@ -121,3 +131,47 @@ impl Request for GetFWStatusRequest {
 #[derive(Deserialize, Debug)]
 pub struct GetFWStatusResponse(u8);
 impl Response for GetFWStatusResponse {}
+
+
+
+pub struct StartUploadRequest {
+    image_size: u32,
+    mode: u8
+}
+impl IntoBytes for StartUploadRequest {
+    fn into_bytes(&self) -> Vec<u8> {
+        let mut output = self.image_size.to_be_bytes()[1..].to_vec();
+        output.push(self.mode);
+        output
+    }
+}
+impl Request for StartUploadRequest {
+    const COMMAND: u8 = 0x30;
+    type Response = StartUploadResponse;
+}
+
+#[derive(Deserialize, Debug)]
+pub struct StartUploadResponse(u16);
+impl Response for StartUploadResponse {}
+
+
+
+pub struct SendChunkRequest {
+    chunk_num: u16,
+    data: Vec<u8>
+}
+impl IntoBytes for SendChunkRequest {
+    fn into_bytes(&self) -> Vec<u8> {
+        let mut output = self.chunk_num.to_be_bytes().to_vec();
+        output.extend_from_slice(&self.data);
+        output
+    }
+}
+impl Request for SendChunkRequest {
+    const COMMAND: u8 = 0x31;
+    type Response = SendChunkResponse;
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SendChunkResponse(u16);
+impl Response for SendChunkResponse {}

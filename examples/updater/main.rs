@@ -34,7 +34,7 @@ where
             .await
             .unwrap()
             .unwrap()?;
-        let response: R::Response = Response::from::<R>(response_frame)?;
+        let response: R::Response = Response::from_frame::<R>(response_frame)?;
         Ok(response)
     }
 }
