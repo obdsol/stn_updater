@@ -1,4 +1,4 @@
-use crate::codec::{self, RequestFrame, ResponseFrame, StnCodec};
+use crate::codec::{self, RequestFrame, ResponseFrame, SerialCodec};
 use crate::protocol::{ConnectRequest, ConnectResponse, Request, Response};
 use futures::{sink::SinkExt, StreamExt};
 use std::time::Duration;

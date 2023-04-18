@@ -55,48 +55,48 @@ impl ResponseFrame {
     }
 }
 
-pub struct StnCodec {
+pub struct SerialCodec {
     crc: Crc<u16>,
 }
 
-impl StnCodec {
+impl SerialCodec {
     pub const STX: u8 = 0x55;
     pub const ETX: u8 = 0x04;
     pub const DLE: u8 = 0x05;
 
-    pub const fn new() -> StnCodec {
-        StnCodec {
+    pub const fn new() -> SerialCodec {
+        SerialCodec {
             crc: Crc::<u16>::new(&crc::CRC_16_XMODEM),
         }
     }
 
     fn byte_stuff(data: u8, dst: &mut BytesMut) {
-        if let StnCodec::STX | StnCodec::ETX | StnCodec::DLE = data {
-            dst.put_u8(StnCodec::DLE);
+        if let SerialCodec::STX | SerialCodec::ETX | SerialCodec::DLE = data {
+            dst.put_u8(SerialCodec::DLE);
         }
         dst.put_u8(data);
     }
 }
 
-impl Encoder<RequestFrame> for StnCodec {
+impl Encoder<RequestFrame> for SerialCodec {
     type Error = Error;
 
     fn encode(&mut self, item: RequestFrame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let mut digest = self.crc.digest();
 
-        dst.put_u8(StnCodec::STX);
-        dst.put_u8(StnCodec::STX);
+        dst.put_u8(SerialCodec::STX);
+        dst.put_u8(SerialCodec::STX);
 
-        StnCodec::byte_stuff(item.command, dst);
+        SerialCodec::byte_stuff(item.command, dst);
         digest.update(&[item.command]);
 
         let length = (item.data.len() as u16).to_be_bytes();
-        StnCodec::byte_stuff(length[0], dst);
-        StnCodec::byte_stuff(length[1], dst);
+        SerialCodec::byte_stuff(length[0], dst);
+        SerialCodec::byte_stuff(length[1], dst);
         digest.update(&length);
 
         for data in &item.data {
-            StnCodec::byte_stuff(*data, dst);
+            SerialCodec::byte_stuff(*data, dst);
         }
         digest.update(&item.data);
 
@@ -104,13 +104,13 @@ impl Encoder<RequestFrame> for StnCodec {
 
         dst.put_u16(crc);
 
-        dst.put_u8(StnCodec::ETX);
+        dst.put_u8(SerialCodec::ETX);
 
         Ok(())
     }
 }
 
-impl Decoder for StnCodec {
+impl Decoder for SerialCodec {
     type Item = ResponseFrame;
     type Error = Error;
 
@@ -119,7 +119,7 @@ impl Decoder for StnCodec {
             return Ok(None);
         }
 
-        if src[..2] != [StnCodec::STX, StnCodec::STX] {
+        if src[..2] != [SerialCodec::STX, SerialCodec::STX] {
             return Err(Error::IOError(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("STX: {:?}", &src[..2]),
@@ -137,13 +137,13 @@ impl Decoder for StnCodec {
                 data.push(src[idx]);
             } else {
                 match src[idx] {
-                    StnCodec::STX => {
+                    SerialCodec::STX => {
                         return Err(Error::IOError(std::io::Error::new(
                             std::io::ErrorKind::InvalidData,
                             format!("Unexpected STX: {:?}", &src[..idx + 1]),
                         )));
                     }
-                    StnCodec::ETX => {
+                    SerialCodec::ETX => {
                         if data.len() < 4 || (data[1] as usize) != (data.len() - 4) {
                             return Err(Error::IOError(std::io::Error::new(
                                 std::io::ErrorKind::InvalidData,
@@ -171,7 +171,7 @@ impl Decoder for StnCodec {
 
                         return Ok(Some(response));
                     }
-                    StnCodec::DLE => skip = true,
+                    SerialCodec::DLE => skip = true,
                     _ => {
                         data.push(src[idx]);
                     }
