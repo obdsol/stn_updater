@@ -12,6 +12,19 @@ impl<T: Serialize> IntoBytes for T {
     }
 }
 
+pub trait FromBytes: Sized {
+    type Error;
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error>;
+}
+
+impl<T: DeserializeOwned> FromBytes for T {
+    type Error = Error;
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        Ok(bincode::deserialize(bytes)?)
+    }
+}
+
 pub trait Request: IntoBytes {
     const COMMAND: u8;
     type Response: Response;
@@ -21,14 +34,14 @@ pub trait Request: IntoBytes {
     }
 }
 
-pub trait Response: DeserializeOwned {
+pub trait Response: FromBytes<Error = Error> {
     fn from_frame<T: Request>(frame: ResponseFrame) -> Result<Self, Error> {
         if frame.command != T::COMMAND {
             Err(Error::InvalidCommand(frame))
         } else if !frame.ack {
             Err(Error::InvalidResponse(frame))
         } else {
-            Ok(bincode::deserialize(&frame.data)?)
+            Ok(Self::from_bytes(&frame.data)?)
         }
     }
 }
