@@ -44,8 +44,6 @@ impl Request for ConnectRequest {
 pub struct ConnectResponse;
 impl Response for ConnectResponse {}
 
-
-
 #[derive(Serialize)]
 pub struct GetVersionRequest;
 impl Request for GetVersionRequest {
@@ -56,11 +54,9 @@ impl Request for GetVersionRequest {
 #[derive(Deserialize, Debug)]
 pub struct GetVersionResponse {
     major: u8,
-    minor: u8
+    minor: u8,
 }
 impl Response for GetVersionResponse {}
-
-
 
 #[derive(Serialize)]
 pub struct GetDevIDRequest;
@@ -73,8 +69,6 @@ impl Request for GetDevIDRequest {
 pub struct GetDevIDResponse(u16);
 impl Response for GetDevIDResponse {}
 
-
-
 #[derive(Serialize)]
 pub struct GetHWRevRequest;
 impl Request for GetHWRevRequest {
@@ -85,11 +79,9 @@ impl Request for GetHWRevRequest {
 #[derive(Deserialize, Debug)]
 pub struct GetHWRevResponse {
     major: u8,
-    minor: u8
+    minor: u8,
 }
 impl Response for GetHWRevResponse {}
-
-
 
 #[derive(Serialize)]
 pub struct GetSerialNumberRequest;
@@ -100,11 +92,9 @@ impl Request for GetSerialNumberRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetSerialNumberResponse {
-    serial: [char; 8]
+    serial: [char; 8],
 }
 impl Response for GetSerialNumberResponse {}
-
-
 
 #[derive(Serialize)]
 pub struct GetDeviceNameRequest;
@@ -115,11 +105,9 @@ impl Request for GetDeviceNameRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetDeviceNameResponse {
-    name: [char; 32]
+    name: [char; 32],
 }
 impl Response for GetDeviceNameResponse {}
-
-
 
 #[derive(Serialize)]
 pub struct GetFWStatusRequest;
@@ -132,11 +120,9 @@ impl Request for GetFWStatusRequest {
 pub struct GetFWStatusResponse(u8);
 impl Response for GetFWStatusResponse {}
 
-
-
 pub struct StartUploadRequest {
     image_size: u32,
-    mode: u8
+    mode: u8,
 }
 impl IntoBytes for StartUploadRequest {
     fn into_bytes(&self) -> Vec<u8> {
@@ -154,11 +140,9 @@ impl Request for StartUploadRequest {
 pub struct StartUploadResponse(u16);
 impl Response for StartUploadResponse {}
 
-
-
 pub struct SendChunkRequest {
     chunk_num: u16,
-    data: Vec<u8>
+    data: Vec<u8>,
 }
 impl IntoBytes for SendChunkRequest {
     fn into_bytes(&self) -> Vec<u8> {
