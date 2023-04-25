@@ -178,7 +178,7 @@ where
                 }
             }
         }
-        return Err(error);
+        Err(error)
     }
 
     pub async fn reset(&mut self) -> Result<(), codec::Error> {
@@ -211,9 +211,7 @@ where
                 let num_chunks = (firmware_data.len() + chunk_size - 1) / chunk_size;
 
                 let pb = ProgressBar::new(num_chunks as u64);
-                for (idx, chunk) in
-                    pb.wrap_iter(firmware_data.chunks(chunk_size as usize).enumerate())
-                {
+                for (idx, chunk) in pb.wrap_iter(firmware_data.chunks(chunk_size).enumerate()) {
                     for _ in 0..3 {
                         let chunk_idx = self.send_chunk(idx, chunk).await?;
                         if idx == chunk_idx as usize {
