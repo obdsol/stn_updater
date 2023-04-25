@@ -1,12 +1,13 @@
-use std::io::{self, Write};
+use std::io::{self};
 use std::time::{self, Duration};
 
 use async_trait::async_trait;
 use bytes::{Buf, BytesMut};
 use futures::StreamExt;
 use stn_updater::codec::{self, SerialCodec};
+use stn_updater::firmware;
 use stn_updater::updater::{Resetter, Updater};
-use tokio::time::timeout;
+
 use tokio_serial::{SerialPort, SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::Decoder;
 
@@ -29,17 +30,15 @@ impl Decoder for EndingCodec {
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let ending_len = self.ending.len();
         if src.len() < ending_len {
-            return Ok(None);
+            Ok(None)
         } else {
             match src.windows(ending_len).position(|w| w == &self.ending) {
                 Some(position) => {
                     let frame = src[..position + ending_len].to_vec();
                     src.advance(frame.len());
-                    return Ok(Some(frame));
+                    Ok(Some(frame))
                 }
-                None => {
-                    return Ok(None);
-                }
+                None => Ok(None),
             }
         }
     }
@@ -84,14 +83,14 @@ impl Resetter for ATZResetter {
 
 #[tokio::main]
 async fn main() -> Result<(), codec::Error> {
-    let serial_stream = tokio_serial::new("COM8", 460800)
-        .flow_control(tokio_serial::FlowControl::Hardware)
+    let firmware = firmware::FirmwareImage::open("C:/path/to/firmware.bin")?;
+
+    let serial_stream = tokio_serial::new("COM1", 115200)
         .timeout(Duration::from_secs(1))
         .open_native_async()?;
 
     let mut updater = Updater::new(serial_stream, SerialCodec::new());
-    updater.connect::<ATZResetter>().await?;
-    updater.reset().await?;
+    updater.upload_firmware::<ATZResetter>(firmware).await?;
 
     Ok(())
 }

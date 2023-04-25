@@ -1,5 +1,8 @@
+use std::marker::PhantomData;
+
 use crate::codec::{Error, RequestFrame, ResponseFrame};
 
+use bincode::Options;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub trait IntoBytes {
@@ -21,7 +24,12 @@ impl<T: DeserializeOwned> FromBytes for T {
     type Error = Error;
 
     fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
-        Ok(bincode::deserialize(bytes)?)
+        let result = bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .with_big_endian()
+            .deserialize_from(bytes)?;
+        Ok(result)
     }
 }
 
@@ -69,6 +77,22 @@ pub struct ResetResponse;
 impl Response for ResetResponse {}
 
 #[derive(Serialize)]
+pub struct ResendLastRequest<T> {
+    _phantom: PhantomData<T>,
+}
+impl<T> ResendLastRequest<T> {
+    pub fn new() -> ResendLastRequest<T> {
+        ResendLastRequest {
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<T: Response> Request for ResendLastRequest<T> {
+    const COMMAND: u8 = 0x01;
+    type Response = T;
+}
+
+#[derive(Serialize)]
 pub struct GetVersionRequest;
 impl Request for GetVersionRequest {
     const COMMAND: u8 = 0x06;
@@ -77,8 +101,8 @@ impl Request for GetVersionRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetVersionResponse {
-    major: u8,
-    minor: u8,
+    pub major: u8,
+    pub minor: u8,
 }
 impl Response for GetVersionResponse {}
 
@@ -90,7 +114,7 @@ impl Request for GetDevIDRequest {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct GetDevIDResponse(u16);
+pub struct GetDevIDResponse(pub u16);
 impl Response for GetDevIDResponse {}
 
 #[derive(Serialize)]
@@ -102,8 +126,8 @@ impl Request for GetHWRevRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetHWRevResponse {
-    major: u8,
-    minor: u8,
+    pub major: u8,
+    pub minor: u8,
 }
 impl Response for GetHWRevResponse {}
 
@@ -116,7 +140,7 @@ impl Request for GetSerialNumberRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetSerialNumberResponse {
-    serial: [char; 8],
+    pub serial: [u8; 8],
 }
 impl Response for GetSerialNumberResponse {}
 
@@ -129,7 +153,7 @@ impl Request for GetDeviceNameRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct GetDeviceNameResponse {
-    name: [char; 32],
+    pub name: [char; 32],
 }
 impl Response for GetDeviceNameResponse {}
 
@@ -141,12 +165,12 @@ impl Request for GetFWStatusRequest {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct GetFWStatusResponse(u8);
+pub struct GetFWStatusResponse(pub u8);
 impl Response for GetFWStatusResponse {}
 
 pub struct StartUploadRequest {
-    image_size: u32,
-    mode: u8,
+    pub image_size: u32,
+    pub mode: u8,
 }
 impl IntoBytes for StartUploadRequest {
     fn into_bytes(&self) -> Vec<u8> {
@@ -161,12 +185,12 @@ impl Request for StartUploadRequest {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct StartUploadResponse(u16);
+pub struct StartUploadResponse(pub u16);
 impl Response for StartUploadResponse {}
 
 pub struct SendChunkRequest {
-    chunk_num: u16,
-    data: Vec<u8>,
+    pub chunk_num: u16,
+    pub data: Vec<u8>,
 }
 impl IntoBytes for SendChunkRequest {
     fn into_bytes(&self) -> Vec<u8> {
@@ -181,5 +205,5 @@ impl Request for SendChunkRequest {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct SendChunkResponse(u16);
+pub struct SendChunkResponse(pub u16);
 impl Response for SendChunkResponse {}

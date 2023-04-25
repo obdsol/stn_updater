@@ -80,7 +80,7 @@ impl FirmwareImage {
         Ok(FirmwareImage {
             device_ids,
             descriptors,
-            data: buf.to_vec(),
+            data: firmware_file,
         })
     }
 }

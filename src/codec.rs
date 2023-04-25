@@ -33,7 +33,7 @@ impl From<tokio_serial::Error> for Error {
 }
 
 impl From<Elapsed> for Error {
-    fn from(err: Elapsed) -> Error {
+    fn from(_err: Elapsed) -> Error {
         Error::Timeout
     }
 }
@@ -108,9 +108,9 @@ impl Encoder<RequestFrame> for SerialCodec {
         }
         digest.update(&item.data);
 
-        let crc = digest.finalize();
-
-        dst.put_u16(crc);
+        let crc = digest.finalize().to_be_bytes();
+        SerialCodec::byte_stuff(crc[0], dst);
+        SerialCodec::byte_stuff(crc[1], dst);
 
         dst.put_u8(SerialCodec::ETX);
 
@@ -187,6 +187,6 @@ impl Decoder for SerialCodec {
             }
         }
 
-        return Ok(None);
+        Ok(None)
     }
 }
