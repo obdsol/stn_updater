@@ -58,6 +58,17 @@ pub struct ConnectResponse;
 impl Response for ConnectResponse {}
 
 #[derive(Serialize)]
+pub struct ResetRequest;
+impl Request for ResetRequest {
+    const COMMAND: u8 = 0x02;
+    type Response = ResetResponse;
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ResetResponse;
+impl Response for ResetResponse {}
+
+#[derive(Serialize)]
 pub struct GetVersionRequest;
 impl Request for GetVersionRequest {
     const COMMAND: u8 = 0x06;

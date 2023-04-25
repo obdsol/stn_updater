@@ -1,5 +1,6 @@
 use bytes::{Buf, BufMut, BytesMut};
 use crc::Crc;
+use tokio::time::error::Elapsed;
 use tokio_util::codec::{Decoder, Encoder};
 
 #[derive(Debug)]
@@ -9,6 +10,7 @@ pub enum Error {
     InvalidResponse(ResponseFrame),
     BinCode(Box<bincode::ErrorKind>),
     SerialPortError(tokio_serial::Error),
+    Timeout,
     Placeholder,
 }
 
@@ -27,6 +29,12 @@ impl From<Box<bincode::ErrorKind>> for Error {
 impl From<tokio_serial::Error> for Error {
     fn from(err: tokio_serial::Error) -> Error {
         Error::SerialPortError(err)
+    }
+}
+
+impl From<Elapsed> for Error {
+    fn from(err: Elapsed) -> Error {
+        Error::Timeout
     }
 }
 
