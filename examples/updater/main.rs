@@ -1,8 +1,8 @@
 use std::io::{self, Write};
-use std::time::{Duration, self};
+use std::time::{self, Duration};
 
 use async_trait::async_trait;
-use bytes::{BytesMut, Buf};
+use bytes::{Buf, BytesMut};
 use futures::StreamExt;
 use stn_updater::codec::{self, SerialCodec};
 use stn_updater::updater::{Resetter, Updater};
@@ -11,12 +11,14 @@ use tokio_serial::{SerialPort, SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::Decoder;
 
 struct EndingCodec {
-    ending: Vec<u8>
+    ending: Vec<u8>,
 }
 
 impl EndingCodec {
     fn new<S: AsRef<str>>(ending: S) -> EndingCodec {
-        EndingCodec { ending: ending.as_ref().as_bytes().to_vec() }
+        EndingCodec {
+            ending: ending.as_ref().as_bytes().to_vec(),
+        }
     }
 }
 
@@ -31,7 +33,7 @@ impl Decoder for EndingCodec {
         } else {
             match src.windows(ending_len).position(|w| w == &self.ending) {
                 Some(position) => {
-                    let frame = src[..position+ending_len].to_vec();
+                    let frame = src[..position + ending_len].to_vec();
                     src.advance(frame.len());
                     return Ok(Some(frame));
                 }
@@ -43,7 +45,11 @@ impl Decoder for EndingCodec {
     }
 }
 
-async fn read_until<S: AsRef<str>>(device: &mut SerialStream, ending: S, timeout: Duration) -> Result<String, codec::Error> {
+async fn read_until<S: AsRef<str>>(
+    device: &mut SerialStream,
+    ending: S,
+    timeout: Duration,
+) -> Result<String, codec::Error> {
     let mut stream = EndingCodec::new(ending).framed(device);
     let now = time::Instant::now();
     loop {

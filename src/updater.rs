@@ -1,5 +1,7 @@
 use crate::codec::{self, RequestFrame, ResponseFrame, SerialCodec};
-use crate::protocol::{ConnectRequest, ConnectResponse, Request, Response, ResetResponse, ResetRequest};
+use crate::protocol::{
+    ConnectRequest, ConnectResponse, Request, ResetRequest, ResetResponse, Response,
+};
 use async_trait::async_trait;
 use futures::{sink::SinkExt, StreamExt};
 use std::time::Duration;
@@ -39,7 +41,7 @@ where
         timeout: Duration,
     ) -> Result<R::Response, codec::Error> {
         self.framed.send(request.frame()).await?;
-    
+
         let now = time::Instant::now();
         loop {
             let elapsed = now.elapsed();
@@ -69,7 +71,9 @@ where
         } else {
             D::reset(self.framed.get_mut()).await?;
             for _ in 0..5 {
-                if let Ok(ConnectResponse) = self.transmit(ConnectRequest, Duration::from_secs(1)).await {
+                if let Ok(ConnectResponse) =
+                    self.transmit(ConnectRequest, Duration::from_secs(1)).await
+                {
                     return Ok(());
                 }
             }
