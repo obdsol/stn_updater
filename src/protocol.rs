@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::codec::{Error, RequestFrame, ResponseFrame};
+use crate::codec::{RequestFrame, ResponseFrame};
+use crate::error::Error;
 
 use bincode::Options;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

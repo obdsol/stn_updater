@@ -1,42 +1,43 @@
+use crate::error::Error;
+
 use bytes::{Buf, BufMut, BytesMut};
 use crc::Crc;
-use tokio::time::error::Elapsed;
 use tokio_util::codec::{Decoder, Encoder};
 
-#[derive(Debug)]
-pub enum Error {
-    IOError(std::io::Error),
-    InvalidCommand(ResponseFrame),
-    InvalidResponse(ResponseFrame),
-    BinCode(Box<bincode::ErrorKind>),
-    SerialPortError(tokio_serial::Error),
-    Timeout,
-    Placeholder,
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     IOError(std::io::Error),
+//     InvalidCommand(ResponseFrame),
+//     InvalidResponse(ResponseFrame),
+//     BinCode(Box<bincode::ErrorKind>),
+//     SerialPortError(tokio_serial::Error),
+//     Timeout,
+//     Placeholder,
+// }
 
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::IOError(err)
-    }
-}
+// impl From<std::io::Error> for Error {
+//     fn from(err: std::io::Error) -> Error {
+//         Error::IOError(err)
+//     }
+// }
 
-impl From<Box<bincode::ErrorKind>> for Error {
-    fn from(err: Box<bincode::ErrorKind>) -> Error {
-        Error::BinCode(err)
-    }
-}
+// impl From<Box<bincode::ErrorKind>> for Error {
+//     fn from(err: Box<bincode::ErrorKind>) -> Error {
+//         Error::BinCode(err)
+//     }
+// }
 
-impl From<tokio_serial::Error> for Error {
-    fn from(err: tokio_serial::Error) -> Error {
-        Error::SerialPortError(err)
-    }
-}
+// impl From<tokio_serial::Error> for Error {
+//     fn from(err: tokio_serial::Error) -> Error {
+//         Error::SerialPortError(err)
+//     }
+// }
 
-impl From<Elapsed> for Error {
-    fn from(_err: Elapsed) -> Error {
-        Error::Timeout
-    }
-}
+// impl From<Elapsed> for Error {
+//     fn from(_err: Elapsed) -> Error {
+//         Error::Timeout
+//     }
+// }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RequestFrame {

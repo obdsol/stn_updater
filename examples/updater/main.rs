@@ -4,12 +4,14 @@ use std::time::{self, Duration};
 use async_trait::async_trait;
 use bytes::{Buf, BytesMut};
 use futures::StreamExt;
-use stn_updater::codec::{self, SerialCodec};
+use stn_updater::codec::SerialCodec;
 use stn_updater::firmware;
 use stn_updater::updater::{Resetter, Updater};
 
 use tokio_serial::{SerialPort, SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::Decoder;
+
+use indicatif::ProgressBar;
 
 struct EndingCodec {
     ending: Vec<u8>,
@@ -48,12 +50,12 @@ async fn read_until<S: AsRef<str>>(
     device: &mut SerialStream,
     ending: S,
     timeout: Duration,
-) -> Result<String, codec::Error> {
+) -> Result<String, stn_updater::error::Error> {
     let mut stream = EndingCodec::new(ending).framed(device);
     let now = time::Instant::now();
     loop {
         if now.elapsed() >= timeout {
-            return Err(codec::Error::Timeout);
+            return Err(stn_updater::error::Error::Timeout);
         }
 
         if let Some(Ok(response)) = stream.next().await {
@@ -66,7 +68,7 @@ struct ATZResetter;
 #[async_trait]
 impl Resetter for ATZResetter {
     type Device = SerialStream;
-    async fn reset(device: &mut Self::Device) -> Result<(), codec::Error> {
+    async fn reset(device: &mut Self::Device) -> anyhow::Result<()> {
         device.clear(tokio_serial::ClearBuffer::All)?;
 
         device.try_write(b"?\r")?;
@@ -89,8 +91,15 @@ async fn main() -> Result<(), codec::Error> {
         .timeout(Duration::from_secs(1))
         .open_native_async()?;
 
+    let pb = ProgressBar::new(100);
+
     let mut updater = Updater::new(serial_stream, SerialCodec::new());
-    updater.upload_firmware::<ATZResetter>(firmware).await?;
+    updater
+        .upload_firmware::<ATZResetter>(firmware, |idx, length| {
+            pb.set_length(length as u64);
+            pb.set_position(idx as u64);
+        })
+        .await?;
 
     Ok(())
 }
