@@ -84,7 +84,7 @@ impl Resetter for ATZResetter {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), codec::Error> {
+async fn main() -> Result<(), anyhow::Error> {
     let firmware = firmware::FirmwareImage::open("C:/path/to/firmware.bin")?;
 
     let serial_stream = tokio_serial::new("COM1", 115200)
