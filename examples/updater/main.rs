@@ -1,8 +1,10 @@
 use std::io::{self};
+use std::path::PathBuf;
 use std::time::{self, Duration};
 
 use async_trait::async_trait;
 use bytes::{Buf, BytesMut};
+use clap::{ArgGroup, Parser};
 use futures::StreamExt;
 use stn_updater::codec::SerialCodec;
 use stn_updater::firmware;
@@ -83,23 +85,54 @@ impl Resetter for ATZResetter {
     }
 }
 
+#[derive(Parser, Debug)]
+#[clap(group = ArgGroup::new("comms").args(&["port", "ble"]).required(true))]
+#[clap(group = ArgGroup::new("serial").args(&["port", "baud", "flow-control"]).multiple(true))]
+struct Args {
+    /// Path to firmware image
+    #[clap(parse(from_os_str), required = true)]
+    firmware: PathBuf,
+
+    /// Serial port
+    #[clap(long, short, group = "serial", requires = "baud")]
+    port: Option<String>,
+
+    /// Baudrate
+    #[clap(long, short, group = "serial")]
+    baud: Option<u32>,
+
+    /// Hardware flow-control
+    #[clap(long, short, group = "serial")]
+    flow_control: bool,
+
+    /// Connect to BLE device
+    #[clap(long)]
+    ble: bool,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let firmware = firmware::FirmwareImage::open("C:/path/to/firmware.bin")?;
+    let args = Args::parse();
 
-    let serial_stream = tokio_serial::new("COM1", 115200)
-        .timeout(Duration::from_secs(1))
-        .open_native_async()?;
+    let firmware = firmware::FirmwareImage::open(args.firmware)?;
 
-    let pb = ProgressBar::new(100);
+    if let (Some(port), Some(baud)) = (args.port, args.baud) {
+        let serial_stream = tokio_serial::new(port, baud)
+            .timeout(Duration::from_secs(1))
+            .open_native_async()?;
 
-    let mut updater = Updater::new(serial_stream, SerialCodec::new());
-    updater
-        .upload_firmware::<ATZResetter>(firmware, |idx, length| {
-            pb.set_length(length as u64);
-            pb.set_position(idx as u64);
-        })
-        .await?;
+        let pb = ProgressBar::new(100);
+
+        let mut updater = Updater::new(serial_stream, SerialCodec::new());
+        updater
+            .upload_firmware::<ATZResetter>(firmware, |idx, length| {
+                pb.set_length(length as u64);
+                pb.set_position(idx as u64);
+            })
+            .await?;
+    } else if args.ble {
+        // TODO: Implement BLE interface
+    }
 
     Ok(())
 }
