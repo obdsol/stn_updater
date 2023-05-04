@@ -131,6 +131,59 @@ impl<'a> Resetter for BLEATZResetter<'a> {
     }
 }
 
+struct CharWriteTask<'a> {
+    _periph: Pin<Box<Peripheral>>,
+    _characteristic: Pin<Box<Characteristic>>,
+    _buffer: Pin<Box<[u8]>>,
+    future: Pin<Box<dyn futures::Future<Output = Result<(), btleplug::Error>> + Send + 'a>>,
+}
+
+impl<'a> CharWriteTask<'a> {
+    fn new(
+        periph: Peripheral,
+        characteristic: Characteristic,
+        buffer: &[u8],
+        write_type: WriteType,
+    ) -> CharWriteTask<'a> {
+        let periph = Box::pin(periph);
+        let characteristic = Box::pin(characteristic);
+        let buffer = Pin::new(buffer.to_vec().into_boxed_slice());
+        let periph_ptr = periph.as_ref().get_ref() as *const _;
+        let characteristic_ptr = characteristic.as_ref().get_ref() as *const _;
+        let buffer_ptr = buffer.as_ref().get_ref() as *const _;
+
+        let future = unsafe {
+            Peripheral::write(&*periph_ptr, &*characteristic_ptr, &*buffer_ptr, write_type)
+        };
+
+        CharWriteTask {
+            _periph: periph,
+            _characteristic: characteristic,
+            _buffer: buffer,
+            future,
+        }
+    }
+}
+
+impl<'a> Future for CharWriteTask<'a> {
+    type Output = Result<(), btleplug::Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.future.poll_unpin(cx)
+    }
+}
+
+#[pin_project]
+struct PeripheralStream<'a> {
+    periph: Peripheral,
+    char_rx: Characteristic,
+    char_tx: Characteristic,
+    rx_stream: Pin<Box<dyn Stream<Item = ValueNotification> + Send>>,
+    rx_buffer: VecDeque<u8>,
+    #[pin]
+    tx_write_task: Option<CharWriteTask<'a>>,
+}
+
 impl<'a> PeripheralStream<'a> {
     fn new(
         periph: Peripheral,
@@ -171,59 +224,6 @@ impl<'a> PeripheralStream<'a> {
                 tx_write_task: None,
             })
         })
-    }
-}
-
-#[pin_project]
-struct PeripheralStream<'a> {
-    periph: Peripheral,
-    char_rx: Characteristic,
-    char_tx: Characteristic,
-    rx_stream: Pin<Box<dyn Stream<Item = ValueNotification> + Send>>,
-    rx_buffer: VecDeque<u8>,
-    #[pin]
-    tx_write_task: Option<CharWriteTask<'a>>,
-}
-
-struct CharWriteTask<'a> {
-    _periph: Pin<Box<Peripheral>>,
-    _characteristic: Pin<Box<Characteristic>>,
-    _buffer: Pin<Box<[u8]>>,
-    future: Pin<Box<dyn futures::Future<Output = Result<(), btleplug::Error>> + Send + 'a>>,
-}
-
-impl<'a> CharWriteTask<'a> {
-    fn new(
-        periph: Peripheral,
-        characteristic: Characteristic,
-        buffer: &[u8],
-        write_type: WriteType,
-    ) -> CharWriteTask<'a> {
-        let periph = Box::pin(periph);
-        let characteristic = Box::pin(characteristic);
-        let buffer = Pin::new(buffer.to_vec().into_boxed_slice());
-        let periph_ptr = periph.as_ref().get_ref() as *const _;
-        let characteristic_ptr = characteristic.as_ref().get_ref() as *const _;
-        let buffer_ptr = buffer.as_ref().get_ref() as *const _;
-
-        let future = unsafe {
-            Peripheral::write(&*periph_ptr, &*characteristic_ptr, &*buffer_ptr, write_type)
-        };
-
-        CharWriteTask {
-            _periph: periph,
-            _characteristic: characteristic,
-            _buffer: buffer,
-            future,
-        }
-    }
-}
-
-impl<'a> Future for CharWriteTask<'a> {
-    type Output = Result<(), btleplug::Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.future.poll_unpin(cx)
     }
 }
 
